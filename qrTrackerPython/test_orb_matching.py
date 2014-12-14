@@ -13,17 +13,17 @@ import drawMatches
 import time, sys
 
 IMGPATH = "../images/"
-QRFILENAME = "eiffel.jpeg"
-TESTFILENAME = "eiffel_1.jpeg"
+TEMPFILENAME = "calig.JPG"
+TESTFILENAME = "calig_3.JPG"
 
 # read images
 test = cv2.imread(IMGPATH + TESTFILENAME)
-test = cv2.resize(test, (int(round(test.shape[1]*0.25)), 
-                     int(round(test.shape[0]*0.25))))
+#test = cv2.resize(test, (int(round(test.shape[1]*0.25)), 
+#                     int(round(test.shape[0]*0.25))))
 
 temp = cv2.imread(IMGPATH + TEMPFILENAME)
-temp = cv2.resize(temp, (int(round(temp.shape[1]*0.25)), 
-                     int(round(temp.shape[0]*0.25))))
+#temp = cv2.resize(temp, (int(round(temp.shape[1]*0.25)), 
+#                     int(round(temp.shape[0]*0.25))))
 
 # create random composite
 #random.seed()
