@@ -4,7 +4,7 @@ Author: David Fridovich-Keil
 
 Test feature matching using ORB features and RANSAC.
 """
-# test
+
 import numpy as np
 import random, math
 import cv2
@@ -12,7 +12,7 @@ import drawMatches
 
 import time, sys
 
-IMGPATH = "../images/"
+IMGPATH = "./"
 QRFILENAME = "example.png"
 BGFILENAME = "nassau.jpg"
 
