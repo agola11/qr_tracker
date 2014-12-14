@@ -13,14 +13,15 @@ import drawMatches
 import time, sys
 
 IMGPATH = "../images/"
-QRFILENAME = "qr_example.png"
+QRFILENAME = "ar_example.png"
 ARFILENAME = "ar_example.png"
-TESTFILENAME = "test1.jpg"
+TESTFILENAME = "image_7.jpeg"
 
 # read images
 test = cv2.imread(IMGPATH + TESTFILENAME)
-#test = cv2.resize(test, (int(round(test.shape[1]*0.25)), 
-#                     int(round(test.shape[0]*0.25))))
+test = cv2.resize(test, (int(round(test.shape[1]*0.25)), 
+                     int(round(test.shape[0]*0.25))))
+test = test[100:700, 100:700]
 
 qr = cv2.imread(IMGPATH + QRFILENAME)
 qr = cv2.resize(qr, (300, 300))
@@ -61,6 +62,7 @@ for m,n in matches_qr:
     if m.distance < 0.75*n.distance:
         good_matches_qr.append(m)
 
+
 # halt if not enough good matches
 if len(good_matches_qr) < 4:
     print "Not enough good matches to estimate a homography."
@@ -84,9 +86,9 @@ gray_test.shape
 # filter out inliers
 matchesMask_qr = mask_qr.ravel().tolist()
 inliers = []
-for i, m in enumerate(matchesMask):
+for i, m in enumerate(matchesMask_qr):
     if m == 1:
-        inliers.append(good_matches[i])
+        inliers.append(good_matches_qr[i])
 
 # print elapsed time
 print "Total elapsed time: " + str(time.time() - starttime) + " seconds"
