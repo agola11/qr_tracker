@@ -13,17 +13,17 @@ import drawMatches
 import time, sys
 
 IMGPATH = "../images/"
-TEMPFILENAME = "calig.JPG"
-TESTFILENAME = "calig_3.JPG"
+TEMPFILENAME = "orange_chinese.JPG"
+TESTFILENAME = "orange_chinese_1.JPG"
 
 # read images
 test = cv2.imread(IMGPATH + TESTFILENAME)
-#test = cv2.resize(test, (int(round(test.shape[1]*0.25)), 
-#                     int(round(test.shape[0]*0.25))))
+test = cv2.resize(test, (int(round(test.shape[1]*0.25)), 
+                     int(round(test.shape[0]*0.25))))
 
 temp = cv2.imread(IMGPATH + TEMPFILENAME)
-#temp = cv2.resize(temp, (int(round(temp.shape[1]*0.25)), 
-#                     int(round(temp.shape[0]*0.25))))
+temp = cv2.resize(temp, (int(round(temp.shape[1]*0.25)), 
+                     int(round(temp.shape[0]*0.25))))
 
 # create random composite
 #random.seed()
@@ -37,8 +37,17 @@ temp = cv2.imread(IMGPATH + TEMPFILENAME)
 #   paste_loc[0]:(paste_loc[0] + scaled_temp.shape[0])] = scaled_temp
 
 # convert to grayscale
+hsv_temp = cv2.cvtColor(temp, cv2.COLOR_RGB2HSV)
+hue_temp = hsv_temp[:,:,0]
 gray_temp = cv2.cvtColor(temp, cv2.COLOR_RGB2GRAY)
+gray_temp[np.logical_or(np.logical_and(hue_temp > 20, hue_temp < 110),
+			gray_temp > 140)] = 255
+
+hsv_test = cv2.cvtColor(test, cv2.COLOR_RGB2HSV)
+hue_test = hsv_test[:,:,0]
 gray_test = cv2.cvtColor(test, cv2.COLOR_RGB2GRAY)
+gray_test[np.logical_or(np.logical_and(hue_test > 20, hue_test < 110),
+			gray_test > 140)] = 255
 
 # start timer
 starttime = time.time()
