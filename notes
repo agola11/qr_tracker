@@ -1,0 +1,6 @@
+Steps:
+
+1) Feature Matching
+2) Color/HSV filtering
+3) Kalman filtering to update the template
+4) PID to track object
