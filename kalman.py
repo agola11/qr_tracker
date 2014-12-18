@@ -1,5 +1,6 @@
 '''
 kalman filter example
+mostly from pykalman example code
 '''
 import numpy as np
 import pylab as pl
