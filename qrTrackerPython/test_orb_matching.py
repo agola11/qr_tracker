@@ -12,6 +12,7 @@ import drawMatches
 
 import time, sys
 
+# file paths
 IMGPATH = "../images/"
 TEMPFILENAME = "orange_chinese.JPG"
 TESTFILENAME = "orange_chinese_1.JPG"
