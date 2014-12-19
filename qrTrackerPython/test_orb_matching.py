@@ -15,12 +15,14 @@ import time, sys
 # file paths
 IMGPATH = "../images/"
 TEMPFILENAME = "orange_chinese.JPG"
-TESTFILENAME = "orange_chinese_1.JPG"
+TESTFILENAME = "orange_chinese_4.JPG"
 
 # read images
 test = cv2.imread(IMGPATH + TESTFILENAME)
 test = cv2.resize(test, (int(round(test.shape[1]*0.25)), 
                      int(round(test.shape[0]*0.25))))
+#test = test[100:600, 50:400, :] # for orange_chinese_2.JPG
+#test = test[200:300, 200:400, :] # for orange_chinese_3.JPG
 
 temp = cv2.imread(IMGPATH + TEMPFILENAME)
 temp = cv2.resize(temp, (int(round(temp.shape[1]*0.25)), 
@@ -51,12 +53,22 @@ gray_test = cv2.cvtColor(test, cv2.COLOR_RGB2GRAY)
 UPPERBOUND_ORANGE = 25
 LOWERBOUND_ORANGE = 110
 LOWERBOUND_LUM = 140
-gray_temp[np.logical_or(np.logical_and(hue_temp > UPPERBOUND_ORANGE, 
+MEDIANSIZE = 3
+
+indices_temp = np.logical_or(np.logical_and(hue_temp > UPPERBOUND_ORANGE, 
                                        hue_temp < LOWERBOUND_ORANGE),
-			gray_temp > LOWERBOUND_LUM)] = 255
-gray_test[np.logical_or(np.logical_and(hue_test > UPPERBOUND_ORANGE, 
+                             gray_temp > LOWERBOUND_LUM)
+gray_temp[indices_temp] = 255
+gray_temp[np.logical_not(indices_temp)] = 0
+
+indices_test = np.logical_or(np.logical_and(hue_test > UPPERBOUND_ORANGE, 
                                        hue_test < LOWERBOUND_ORANGE),
-			gray_test > LOWERBOUND_LUM)] = 255
+                             gray_test > LOWERBOUND_LUM)
+gray_test[indices_test] = 255
+gray_test[np.logical_not(indices_test)] = 0
+
+gray_temp = cv2.medianBlur(gray_temp, MEDIANSIZE)
+gray_test = cv2.medianBlur(gray_test, MEDIANSIZE)
 
 # start timer
 starttime = time.time()
@@ -73,7 +85,7 @@ matches_temp = bf.knnMatch(des_temp, des_test, k=2)
 # ratio test
 good_matches_temp = []
 for m,n in matches_temp:
-    if m.distance < 0.75*n.distance:
+    if m.distance < 0.8*n.distance:
         good_matches_temp.append(m)
 
 
@@ -94,7 +106,7 @@ temp_h, temp_w = gray_temp.shape
 corners_temp = np.float32([[0, 0], [0, temp_h-1], 
                          [temp_w-1, temp_h-1], [temp_w-1, 0]]).reshape(-1,1,2)
 corners_test_temp = cv2.perspectiveTransform(corners_temp, H_temp)
-cv2.polylines(gray_test, [np.int32(corners_test_temp)], True, 0, 5)
+cv2.polylines(gray_test, [np.int32(corners_test_temp)], True, 120, 5)
 gray_test.shape
 
 # filter out inliers
