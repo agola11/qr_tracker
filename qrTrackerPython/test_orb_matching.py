@@ -40,14 +40,22 @@ temp = cv2.resize(temp, (int(round(temp.shape[1]*0.25)),
 hsv_temp = cv2.cvtColor(temp, cv2.COLOR_RGB2HSV)
 hue_temp = hsv_temp[:,:,0]
 gray_temp = cv2.cvtColor(temp, cv2.COLOR_RGB2GRAY)
-gray_temp[np.logical_or(np.logical_and(hue_temp > 20, hue_temp < 110),
-			gray_temp > 140)] = 255
+
 
 hsv_test = cv2.cvtColor(test, cv2.COLOR_RGB2HSV)
 hue_test = hsv_test[:,:,0]
 gray_test = cv2.cvtColor(test, cv2.COLOR_RGB2GRAY)
-gray_test[np.logical_or(np.logical_and(hue_test > 20, hue_test < 110),
-			gray_test > 140)] = 255
+
+# filter colors
+UPPERBOUND_ORANGE = 25
+LOWERBOUND_ORANGE = 110
+LOWERBOUND_LUM = 140
+gray_temp[np.logical_or(np.logical_and(hue_temp > UPPERBOUND_ORANGE, 
+                                       hue_temp < LOWERBOUND_ORANGE),
+			gray_temp > LOWERBOUND_LUM)] = 255
+gray_test[np.logical_or(np.logical_and(hue_test > UPPERBOUND_ORANGE, 
+                                       hue_test < LOWERBOUND_ORANGE),
+			gray_test > LOWERBOUND_LUM)] = 255
 
 # start timer
 starttime = time.time()
