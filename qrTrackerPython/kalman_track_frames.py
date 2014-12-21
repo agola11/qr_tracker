@@ -7,18 +7,17 @@ result from the previous frame.
 """
 
 import numpy as np
-import random, math
 import cv2
-import drawMatches
 import pykalman
-
-import time, sys, os
+import matplotlib.pyplot as plt
+import time, sys, os, math
 
 # file paths
 IMGPATH = "../images/"
 EXFILENAME = "orange_chinese.JPG"
-VIDEOPATH = "../videos/orange_chinese/"
-VIDEOBASENAME = "orange_chinese%4d.jpg"
+VIDEOPATH = "../videos/orange_chinese/frames/"
+VIDEOBASENAME = "orange_chinese%04d.jpg"
+OUTPUTPATH = "../videos/orange_chinese/frames_out/"
 
 # initialize kalman parameters
 """
@@ -28,58 +27,80 @@ ADD CODE HERE.
 # initialize color filter parameters
 UPPERBOUND_ORANGE = 25
 LOWERBOUND_ORANGE = 110
-LOWERBOUND_LUM = 140
+UPPERBOUND_LUM = 140
+LOWERBOUND_LUM = 20
 MEDIANSIZE = 3
 
 # initialize other recurrent parameters
-last_topleft = (None, None)
-last_botright = (None, None)
+last_topleft = None
+last_botright = None
 CROPFACTOR = 1.5
 frame = 1
+
+# process example (see below for comments)
+ex = cv2.imread(IMGPATH + EXFILENAME)
+hsv_ex = cv2.cvtColor(ex, cv2.COLOR_RGB2HSV)
+hue_ex = hsv_ex[:,:,0]
+gray_ex = cv2.cvtColor(ex, cv2.COLOR_RGB2GRAY)
+indices_ex = np.logical_or(np.logical_and(hue_ex > UPPERBOUND_ORANGE, 
+                                          hue_ex < LOWERBOUND_ORANGE),
+                           gray_ex < LOWERBOUND_LUM,
+                           gray_ex > UPPERBOUND_LUM)
+gray_ex[indices_ex] = 255
+gray_ex[np.logical_not(indices_ex)] = 0
+gray_ex = cv2.medianBlur(gray_ex, MEDIANSIZE)
+orb = cv2.ORB()
+kp_ex, des_ex = orb.detectAndCompute(gray_ex, None)
+bf = cv2.BFMatcher(normType = cv2.NORM_HAMMING)
+ex_h, ex_w = gray_ex.shape
+corners_ex = np.float32([[0, 0], [0, ex_h-1], 
+                         [ex_w-1, ex_h-1], [ex_w-1, 0]]).reshape(-1,1,2)
 
 # main loop
 while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
 
-    # read images
-    test = cv2.imread(VIDEOPATH + VIDEOBASENAME % frame)
-    ex = cv2.imread(IMGPATH + EXFILENAME)
-    
+    # start timer
+    starttime = time.time()
+
+    # read image and crop
+    test_big = cv2.imread(VIDEOPATH + VIDEOBASENAME % frame)
+    test = test_big
+    offset = (0, 0)
+    if (last_topleft is not None) and (last_botright is not None):
+        mid_row = 0.5 * (last_topleft[0] + last_botright[0])
+        mid_col = 0.5 * (last_topleft[1] + last_botright[1])
+        width = last_botright[0] - last_topleft[0]
+        height = last_botright[1] - last_topleft[1]
+        
+        min_row = max(int(mid_row - CROPFACTOR * width/2.0), 0)
+        max_row = min(int(mid_row + CROPFACTOR * width/2.0), 
+                           test.shape[0])
+        min_col = max(int(mid_col - CROPFACTOR * height/2.0), 0)
+        max_col = min(int(mid_col + CROPFACTOR * height/2.0),
+                           test.shape[1])
+        
+        offset = (min_row, min_col)
+        print offset
+        test = test[min_row:max_row, min_col:max_col, :]
+
     # convert to grayscale
-    hsv_ex = cv2.cvtColor(ex, cv2.COLOR_RGB2HSV)
-    hue_ex = hsv_ex[:,:,0]
-    gray_ex = cv2.cvtColor(ex, cv2.COLOR_RGB2GRAY)
-
-
     hsv_test = cv2.cvtColor(test, cv2.COLOR_RGB2HSV)
     hue_test = hsv_test[:,:,0]
     gray_test = cv2.cvtColor(test, cv2.COLOR_RGB2GRAY)
 
     # filter colors
-    indices_ex = np.logical_or(np.logical_and(hue_ex > UPPERBOUND_ORANGE, 
-                                              hue_ex < LOWERBOUND_ORANGE),
-                               gray_ex > LOWERBOUND_LUM)
-    gray_ex[indices_ex] = 255
-    gray_ex[np.logical_not(indices_ex)] = 0
-
     indices_test = np.logical_or(np.logical_and(hue_test > UPPERBOUND_ORANGE, 
                                                 hue_test < LOWERBOUND_ORANGE),
-                                 gray_test > LOWERBOUND_LUM)
+                                 gray_test < LOWERBOUND_LUM,
+                                 gray_test > UPPERBOUND_LUM)
     gray_test[indices_test] = 255
     gray_test[np.logical_not(indices_test)] = 0
-
-    gray_ex = cv2.medianBlur(gray_ex, MEDIANSIZE)
     gray_test = cv2.medianBlur(gray_test, MEDIANSIZE)
 
-    # start timer
-    starttime = time.time()
-
     # find ORB keypoints
-    orb = cv2.ORB()
-    kp_ex, des_ex = orb.detectAndCompute(gray_ex, None)
     kp_test, des_test = orb.detectAndCompute(gray_test, None)
 
     # do feature matching
-    bf = cv2.BFMatcher(normType = cv2.NORM_HAMMING)
     matches_ex = bf.knnMatch(des_ex, des_test, k=2)
 
     # ratio test
@@ -88,38 +109,44 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
         if m.distance < 0.8*n.distance:
             good_matches_ex.append(m)
 
-
     # halt if not enough good matches
     if len(good_matches_ex) < 4:
         print "Not enough good matches to estimate a homography."
-        sys.exit()
+        frame = frame + 1
 
-    # estimate homography
-    pts_ex = np.float32([kp_ex[m.queryIdx].pt 
-                         for m in good_matches_ex]).reshape(-1,1,2)
-    pts_test = np.float32([kp_test[m.trainIdx].pt 
-                           for m in good_matches_ex]).reshape(-1,1,2)
-    H_ex, mask_ex = cv2.findHomography(pts_ex, pts_test, cv2.RANSAC, 5.0)
+    else:
+    
+        # estimate homography
+        pts_ex = np.float32([kp_ex[m.queryIdx].pt 
+                             for m in good_matches_ex]).reshape(-1,1,2)
+        pts_test = np.float32([kp_test[m.trainIdx].pt 
+                               for m in good_matches_ex]).reshape(-1,1,2)
+        H, mask = cv2.findHomography(pts_ex, pts_test, cv2.RANSAC, 5.0)
+        
+        # draw boundary of ex code
+        corners_test = cv2.perspectiveTransform(corners_ex, H)
+        cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
 
-    # draw boundary of ex code
-    ex_h, ex_w = gray_ex.shape
-    corners_ex = np.float32([[0, 0], [0, ex_h-1], 
-                             [ex_w-1, ex_h-1], [ex_w-1, 0]]).reshape(-1,1,2)
-    corners_test_ex = cv2.perspectiveTransform(corners_ex, H_ex)
-    cv2.polylines(gray_test, [np.int32(corners_test_ex)], True, 120, 5)
-    gray_test.shape
+        # update last corner coordinates
+        print corners_test
+        print corners_test[0,0,1], corners_test[3,0,0]
+        last_topleft = (offset[0] + min(
+                    min(corners_test[0,0,1], corners_test[1,0,1]),
+                    min(corners_test[2,0,1], corners_test[3,0,1])),
+                        offset[1] + min(
+                    min(corners_test[0,0,0], corners_test[1,0,0]),
+                    min(corners_test[2,0,0], corners_test[3,0,0])))
+        last_botright = (offset[0] + max(
+                    max(corners_test[0,0,1], corners_test[1,0,1]),
+                    max(corners_test[2,0,1], corners_test[3,0,1])),
+                         offset[1] + max(
+                    max(corners_test[0,0,0], corners_test[1,0,0]),
+                    max(corners_test[2,0,0], corners_test[3,0,0])))
+        print last_topleft
+        print last_botright
 
-    # filter out inliers
-    matchesMask_ex = mask_ex.ravel().tolist()
-    inliers = []
-    for i, m in enumerate(matchesMask_ex):
-        if m == 1:
-            inliers.append(good_matches_ex[i])
+        # print elapsed time
+        print ("Total elapsed time for frame " + str(frame) + ": " + 
+               str(time.time() - starttime) + " seconds")
+        frame = frame + 1
 
-    # print elapsed time
-    print "Total elapsed time for frame " + frame + ": " + \
-        str(time.time() - starttime) + " seconds"
-    frame = frame + 1
-
-    # show images
-    drawMatches.drawMatches(gray_ex, kp_ex, gray_test, kp_test, inliers) 
