@@ -18,7 +18,7 @@ IMGPATH = "../images/"
 EXFILENAME = "orange_chinese.JPG"
 VIDEOPATH = "../videos/orange_chinese/frames/"
 VIDEOBASENAME = "orange_chinese%04d.jpg"
-OUTPUTPATH = "../videos/orange_chinese/frames_out/"
+OUTPUTPATH = "../videos/orange_chinese/frames_out_same_template_crop/"
 OUTPUTBASENAME = "orange_chinese%04d_output.jpg"
 
 # initialize kalman parameters
@@ -34,11 +34,11 @@ LOWERBOUND_LUM = 55
 MEDIANSIZE = 3
 MATCHINGTHRESH = 0.6
 SCALE = 0.5
+CROPFACTOR = 1.2
 
 # initialize other recurrent parameters
 last_topleft = None
 last_botright = None
-CROPFACTOR = 1.5
 frame = 1
 
 # color filtering
@@ -85,21 +85,22 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
                                      int(round(test_big.shape[0]*SCALE))))
     test = test_big
     offset = (0, 0)
-#    if (last_topleft is not None) and (last_botright is not None):
-#        mid_row = 0.5 * (last_topleft[0] + last_botright[0])
-#        mid_col = 0.5 * (last_topleft[1] + last_botright[1])
-#        width = last_botright[0] - last_topleft[0]
-#        height = last_botright[1] - last_topleft[1]
-#        
-#        min_row = max(int(mid_row - CROPFACTOR * width/2.0), 0)
-#        max_row = min(int(mid_row + CROPFACTOR * width/2.0), 
-#                           test.shape[0])
-#        min_col = max(int(mid_col - CROPFACTOR * height/2.0), 0)
-#        max_col = min(int(mid_col + CROPFACTOR * height/2.0),
-#                           test.shape[1])
-#       
-#        offset = (min_row, min_col)
-#        test = test[min_row:max_row, min_col:max_col, :]
+    if (last_topleft is not None) and (last_botright is not None):
+        mid_row = 0.5 * (last_topleft[0] + last_botright[0])
+        mid_col = 0.5 * (last_topleft[1] + last_botright[1])
+        width = last_botright[0] - last_topleft[0]
+        height = last_botright[1] - last_topleft[1]
+        
+        min_row = max(int(mid_row - CROPFACTOR * width/2.0), 0)
+        max_row = min(int(mid_row + CROPFACTOR * width/2.0), 
+                           test.shape[0])
+        min_col = max(int(mid_col - CROPFACTOR * height/2.0), 0)
+        max_col = min(int(mid_col + CROPFACTOR * height/2.0),
+                           test.shape[1])
+       
+        offset = (min_row, min_col)
+        print ((min_row, min_col), (max_row, max_col))
+        test = test[min_row:max_row, min_col:max_col, :]
 
     # filter colors
     gray_test = filter_color(test)
