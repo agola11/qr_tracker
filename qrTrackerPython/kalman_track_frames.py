@@ -18,7 +18,7 @@ IMGPATH = "../images/"
 EXFILENAME = "orange_chinese.JPG"
 VIDEOPATH = "../videos/orange_chinese/frames/"
 VIDEOBASENAME = "orange_chinese%04d.jpg"
-OUTPUTPATH = "../videos/orange_chinese/frames_out_same_template_crop/"
+OUTPUTPATH = "../videos/orange_chinese/frames_out_update_template/"
 OUTPUTBASENAME = "orange_chinese%04d_output.jpg"
 
 # initialize kalman parameters
@@ -99,7 +99,6 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
                            test.shape[1])
        
         offset = (min_row, min_col)
-        print ((min_row, min_col), (max_row, max_col))
         test = test[min_row:max_row, min_col:max_col, :]
 
     # filter colors
@@ -160,6 +159,12 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
 
             # save frame
             misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
+
+            # update parameters for next run
+            gray_ex = gray_test
+            corners_ex = corners_test
+            kp_ex = kp_test
+            des_ex = des_test
             frame = frame + 1
 
     else:
