@@ -19,7 +19,7 @@ EXFILENAME = "orange_zebra_template.jpg"
 VIDEOPATH = "../videos/orange_zebra/frames/"
 VIDEOBASENAME = "orange_zebra%04d.jpg"
 OUTPUTPATH = "../videos/orange_zebra/frames_out_update_template/"
-OUTPUTBASENAME = "orange_chinese%04d_output.jpg"
+OUTPUTBASENAME = "orange_zebra%04d_output.jpg"
 
 # initialize kalman parameters
 """
