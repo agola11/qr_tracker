@@ -15,10 +15,10 @@ import time, sys, os, math
 
 # file paths
 IMGPATH = "../images/"
-EXFILENAME = "orange_chinese.JPG"
-VIDEOPATH = "../videos/orange_chinese/frames/"
-VIDEOBASENAME = "orange_chinese%04d.jpg"
-OUTPUTPATH = "../videos/orange_chinese/frames_out_update_template/"
+EXFILENAME = "orange_zebra_template.jpg"
+VIDEOPATH = "../videos/orange_zebra/frames/"
+VIDEOBASENAME = "orange_zebra%04d.jpg"
+OUTPUTPATH = "../videos/orange_zebra/frames_out_update_template/"
 OUTPUTBASENAME = "orange_chinese%04d_output.jpg"
 
 # initialize kalman parameters
