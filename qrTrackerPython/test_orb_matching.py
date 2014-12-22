@@ -13,15 +13,38 @@ import drawMatches
 import time, sys
 
 # global parameters
-MATCHINGTHRESH = 0.5
+MATCHINGTHRESH = 0.45
 SCALE = 0.5
-MEDIANSIZE = 5
 
 # file paths
 IMGPATH = "../videos/orange_chinese/frames/"
 TEMPPATH = "../images/"
 TEMPFILENAME = "orange_chinese.JPG"
-TESTFILENAME = "orange_chinese0003.jpg"
+TESTFILENAME = "orange_chinese0001.jpg"
+
+# color filtering
+def filter_color(img):
+    UPPERBOUND_ORANGE = 25
+    LOWERBOUND_ORANGE = 110
+    UPPERBOUND_LUM = 180
+    LOWERBOUND_LUM = 55
+    MEDIANSIZE = 3
+
+    # convert to hsv
+    hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    hue = hsv[:,:,0]
+
+    # threshold
+    gray = hsv[:,:,2]
+    indices = np.logical_or(np.logical_and(hue > UPPERBOUND_ORANGE, 
+                                           hue < LOWERBOUND_ORANGE),
+                            gray < LOWERBOUND_LUM, 
+                            gray > UPPERBOUND_LUM)
+    gray[indices] = 255
+    gray[np.logical_not(indices)] = 0
+    gray = cv2.medianBlur(gray, MEDIANSIZE)
+
+    return gray
 
 # read images
 test = cv2.imread(IMGPATH + TESTFILENAME)
@@ -45,38 +68,9 @@ temp = cv2.resize(temp, (int(round(temp.shape[1]*SCALE)),
 #im[paste_loc[1]:(paste_loc[1] + scaled_temp.shape[1]), 
 #   paste_loc[0]:(paste_loc[0] + scaled_temp.shape[0])] = scaled_temp
 
-# convert to grayscale
-hsv_temp = cv2.cvtColor(temp, cv2.COLOR_RGB2HSV)
-hue_temp = hsv_temp[:,:,0]
-gray_temp = cv2.cvtColor(temp, cv2.COLOR_RGB2GRAY)
-
-
-hsv_test = cv2.cvtColor(test, cv2.COLOR_RGB2HSV)
-hue_test = hsv_test[:,:,0]
-gray_test = cv2.cvtColor(test, cv2.COLOR_RGB2GRAY)
-
 # filter colors
-UPPERBOUND_ORANGE = 25
-LOWERBOUND_ORANGE = 110
-UPPERBOUND_LUM = 140
-LOWERBOUND_LUM = 20
-
-indices_temp = np.logical_or(np.logical_and(hue_temp > UPPERBOUND_ORANGE, 
-                                            hue_temp < LOWERBOUND_ORANGE),
-                             gray_temp < LOWERBOUND_LUM, 
-                             gray_temp > UPPERBOUND_LUM)
-gray_temp[indices_temp] = 255
-gray_temp[np.logical_not(indices_temp)] = 0
-
-indices_test = np.logical_or(np.logical_and(hue_test > UPPERBOUND_ORANGE, 
-                                            hue_test < LOWERBOUND_ORANGE),
-                             gray_test < LOWERBOUND_LUM,
-                             gray_test > UPPERBOUND_LUM)
-gray_test[indices_test] = 255
-gray_test[np.logical_not(indices_test)] = 0
-
-gray_temp = cv2.medianBlur(gray_temp, MEDIANSIZE)
-gray_test = cv2.medianBlur(gray_test, MEDIANSIZE)
+gray_temp = filter_color(temp)
+gray_test = filter_color(test)
 
 # start timer
 starttime = time.time()
