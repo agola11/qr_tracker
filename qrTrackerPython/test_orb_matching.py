@@ -12,26 +12,31 @@ import drawMatches
 
 import time, sys
 
+# global parameters
+MATCHINGTHRESH = 0.5
+SCALE = 0.5
+MEDIANSIZE = 5
+
 # file paths
 IMGPATH = "../videos/orange_chinese/frames/"
 TEMPPATH = "../images/"
 TEMPFILENAME = "orange_chinese.JPG"
-TESTFILENAME = "orange_chinese0001.jpg"
+TESTFILENAME = "orange_chinese0003.jpg"
 
 # read images
 test = cv2.imread(IMGPATH + TESTFILENAME)
-test = cv2.resize(test, (int(round(test.shape[1]*0.25)), 
-                     int(round(test.shape[0]*0.25))))
+test = cv2.resize(test, (int(round(test.shape[1]*SCALE)), 
+                     int(round(test.shape[0]*SCALE))))
 #test = test[100:600, 50:400, :] # for orange_chinese_2.JPG
 #test = test[200:300, 200:400, :] # for orange_chinese_3.JPG
 
 temp = cv2.imread(TEMPPATH + TEMPFILENAME)
-temp = cv2.resize(temp, (int(round(temp.shape[1]*0.25)), 
-                     int(round(temp.shape[0]*0.25))))
+temp = cv2.resize(temp, (int(round(temp.shape[1]*SCALE)), 
+                     int(round(temp.shape[0]*SCALE))))
 
 # create random composite
 #random.seed()
-#scale = random.uniform(0.25, 2.0)
+#scale = random.uniform(SCALE, 2.0)
 #scaled_temp = cv2.resize(temp, (int(round(scale*temp.shape[1])), 
 #                            int(round(scale*temp.shape[0]))))
 #paste_loc = (random.randint(0, test.shape[1] - scaled_temp.shape[1] - 1), 
@@ -55,7 +60,6 @@ UPPERBOUND_ORANGE = 25
 LOWERBOUND_ORANGE = 110
 UPPERBOUND_LUM = 140
 LOWERBOUND_LUM = 20
-MEDIANSIZE = 3
 
 indices_temp = np.logical_or(np.logical_and(hue_temp > UPPERBOUND_ORANGE, 
                                             hue_temp < LOWERBOUND_ORANGE),
@@ -89,7 +93,7 @@ matches_temp = bf.knnMatch(des_temp, des_test, k=2)
 # ratio test
 good_matches_temp = []
 for m,n in matches_temp:
-    if m.distance < 0.8*n.distance:
+    if m.distance < MATCHINGTHRESH * n.distance:
         good_matches_temp.append(m)
 
 

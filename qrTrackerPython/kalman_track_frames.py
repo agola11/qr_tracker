@@ -7,6 +7,7 @@ result from the previous frame.
 """
 
 import numpy as np
+import scipy.misc as misc
 import cv2
 import pykalman
 import matplotlib.pyplot as plt
@@ -18,6 +19,7 @@ EXFILENAME = "orange_chinese.JPG"
 VIDEOPATH = "../videos/orange_chinese/frames/"
 VIDEOBASENAME = "orange_chinese%04d.jpg"
 OUTPUTPATH = "../videos/orange_chinese/frames_out/"
+OUTPUTBASENAME = "orange_chinese%04d_output.jpg"
 
 # initialize kalman parameters
 """
@@ -30,6 +32,8 @@ LOWERBOUND_ORANGE = 110
 UPPERBOUND_LUM = 140
 LOWERBOUND_LUM = 20
 MEDIANSIZE = 3
+MATCHINGTHRESH = 0.45
+SCALE = 0.5
 
 # initialize other recurrent parameters
 last_topleft = None
@@ -39,6 +43,8 @@ frame = 1
 
 # process example (see below for comments)
 ex = cv2.imread(IMGPATH + EXFILENAME)
+ex = cv2.resize(ex, (int(round(ex.shape[1]*SCALE)), 
+                     int(round(ex.shape[0]*SCALE))))
 hsv_ex = cv2.cvtColor(ex, cv2.COLOR_RGB2HSV)
 hue_ex = hsv_ex[:,:,0]
 gray_ex = cv2.cvtColor(ex, cv2.COLOR_RGB2GRAY)
@@ -64,6 +70,8 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
 
     # read image and crop
     test_big = cv2.imread(VIDEOPATH + VIDEOBASENAME % frame)
+    test_big = cv2.resize(test_big, (int(round(test_big.shape[1]*SCALE)), 
+                                     int(round(test_big.shape[0]*SCALE))))
     test = test_big
     offset = (0, 0)
     if (last_topleft is not None) and (last_botright is not None):
@@ -106,13 +114,16 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
     # ratio test
     good_matches_ex = []
     for m,n in matches_ex:
-        if m.distance < 0.8*n.distance:
+        if m.distance < MATCHINGTHRESH*n.distance:
             good_matches_ex.append(m)
 
     # halt if not enough good matches
     if len(good_matches_ex) < 4:
         print "Not enough good matches to estimate a homography."
         frame = frame + 1
+        last_topleft = None
+        last_topright = None
+        offset = (0, 0)
 
     else:
     
@@ -128,8 +139,6 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
         cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
 
         # update last corner coordinates
-        print corners_test
-        print corners_test[0,0,1], corners_test[3,0,0]
         last_topleft = (offset[0] + min(
                     min(corners_test[0,0,1], corners_test[1,0,1]),
                     min(corners_test[2,0,1], corners_test[3,0,1])),
@@ -142,11 +151,11 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
                          offset[1] + max(
                     max(corners_test[0,0,0], corners_test[1,0,0]),
                     max(corners_test[2,0,0], corners_test[3,0,0])))
-        print last_topleft
-        print last_botright
 
         # print elapsed time
         print ("Total elapsed time for frame " + str(frame) + ": " + 
                str(time.time() - starttime) + " seconds")
-        frame = frame + 1
 
+        # save frame
+        misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
+        frame = frame + 1
