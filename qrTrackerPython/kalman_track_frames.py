@@ -9,22 +9,18 @@ result from the previous frame.
 import numpy as np
 import scipy.misc as misc
 import cv2
-import pykalman
 import matplotlib.pyplot as plt
 import time, sys, os, math
+sys.path.append("../KalmanFilter")
+from kalman2d import Kalman2D
 
 # file paths
 IMGPATH = "../images/"
 EXFILENAME = "orange_zebra_template.jpg"
 VIDEOPATH = "../videos/orange_zebra/frames/"
 VIDEOBASENAME = "orange_zebra%04d.jpg"
-OUTPUTPATH = "../videos/orange_zebra/frames_out_update_template/"
+OUTPUTPATH = "../videos/orange_zebra/frames_out_kalman/"
 OUTPUTBASENAME = "orange_zebra%04d_output.jpg"
-
-# initialize kalman parameters
-"""
-ADD CODE HERE.
-"""
 
 # initialize color filter parameters
 UPPERBOUND_ORANGE = 25
@@ -32,7 +28,8 @@ LOWERBOUND_ORANGE = 110
 UPPERBOUND_LUM = 200
 LOWERBOUND_LUM = 75
 MEDIANSIZE = 3
-MATCHINGTHRESH = 0.7
+MATCHINGTHRESH = 0.6
+MINGOODMATCHES = 4
 SCALE = 0.5
 CROPFACTOR = 1.2
 
@@ -72,6 +69,16 @@ bf = cv2.BFMatcher(normType = cv2.NORM_HAMMING)
 ex_h, ex_w = gray_ex.shape
 corners_ex = np.float32([[0, 0], [0, ex_h-1], 
                          [ex_w-1, ex_h-1], [ex_w-1, 0]]).reshape(-1,1,2)
+
+# initialize kalman parameters -- one tracker per corner
+initP = np.matrix(np.eye(4))*1000
+noiseR = 0.001 # totally random guess here... should converge anyway
+
+kalman_topleft = None
+kalman_botleft = None
+kalman_botright = None
+kalman_topright = None
+
 
 # main loop
 while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
@@ -119,7 +126,7 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
                 good_matches_ex.append(m)
 
         # halt if not enough good matches
-        if len(good_matches_ex) < 4:
+        if len(good_matches_ex) < MINGOODMATCHES:
             print "Not enough good matches to estimate a homography."
             frame = frame + 1
             last_topleft = None
@@ -135,8 +142,46 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
                                    for m in good_matches_ex]).reshape(-1,1,2)
             H, mask = cv2.findHomography(pts_ex, pts_test, cv2.RANSAC, 5.0)
             
+            # use Kalman filters to update corner positions
+            corners_test_raw = cv2.perspectiveTransform(corners_ex, H)
+            obs_topleft = [corners_test_raw[0,0,0], corners_test_raw[0,0,1]]
+            obs_botleft = [corners_test_raw[1,0,0], corners_test_raw[1,0,1]]
+            obs_botright = [corners_test_raw[2,0,0], corners_test_raw[2,0,1]]
+            obs_topright = [corners_test_raw[3,0,0], corners_test_raw[3,0,1]]
+
+            # create new kalman filters if first run
+            if frame == 1:
+                initX_topleft = np.matrix([obs_topleft[0], obs_topleft[1], 
+                                           0., 0.]).T
+                initX_botleft = np.matrix([obs_botleft[0], obs_botleft[1], 
+                                           0., 0.]).T
+                initX_botright = np.matrix([obs_botright[0], obs_botright[1],
+                                            0., 0.]).T
+                initX_topright = np.matrix([obs_topright[0], obs_topright[1],
+                                            0., 0.]).T
+
+                kalman_topleft = Kalman2D(initX_topleft, initP)
+                kalman_botleft = Kalman2D(initX_botleft, initP)
+                kalman_botright = Kalman2D(initX_botright, initP)
+                kalman_topright = Kalman2D(initX_topright, initP)
+
+            else:    
+                kalman_topleft.update(obs_topleft, noiseR)
+                kalman_botleft.update(obs_botleft, noiseR)
+                kalman_botright.update(obs_botright, noiseR)
+                kalman_topright.update(obs_topright, noiseR)
+
+            filtered_topleft = kalman_topleft.X[:2].tolist()
+            filtered_botleft = kalman_botleft.X[:2].tolist()
+            filtered_botright = kalman_botright.X[:2].tolist()
+            filtered_topright = kalman_topright.X[:2].tolist()
+
+            corners_test = np.float32([filtered_topleft,
+                                       filtered_botleft,
+                                       filtered_botright,
+                                       filtered_topright]).reshape(-1,1,2)
+
             # draw boundary of ex code
-            corners_test = cv2.perspectiveTransform(corners_ex, H)
             cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
 
             # update last corner coordinates
