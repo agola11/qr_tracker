@@ -13,21 +13,21 @@ import drawMatches
 import time, sys
 
 # global parameters
-MATCHINGTHRESH = 0.45
+MATCHINGTHRESH = 0.6
 SCALE = 0.5
 
 # file paths
-IMGPATH = "../videos/orange_chinese/frames/"
+IMGPATH = "../videos/orange_zebra/frames/"
 TEMPPATH = "../images/"
-TEMPFILENAME = "orange_chinese.JPG"
-TESTFILENAME = "orange_chinese0001.jpg"
+TEMPFILENAME = "orange_zebra_template.jpg"
+TESTFILENAME = "orange_zebra0001.jpg"
 
 # color filtering
 def filter_color(img):
     UPPERBOUND_ORANGE = 25
     LOWERBOUND_ORANGE = 110
-    UPPERBOUND_LUM = 180
-    LOWERBOUND_LUM = 55
+    UPPERBOUND_LUM = 200
+    LOWERBOUND_LUM = 75
     MEDIANSIZE = 3
 
     # convert to hsv
