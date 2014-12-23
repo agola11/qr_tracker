@@ -71,14 +71,13 @@ corners_ex = np.float32([[0, 0], [0, ex_h-1],
                          [ex_w-1, ex_h-1], [ex_w-1, 0]]).reshape(-1,1,2)
 
 # initialize kalman parameters -- one tracker per corner
-initP = np.matrix(np.eye(4))*1000
-noiseR = 0.001 # totally random guess here... should converge anyway
+initP = np.matrix(np.eye(4))
+noiseR = 0.00001 # totally random guess here... should converge anyway
 
 kalman_topleft = None
 kalman_botleft = None
 kalman_botright = None
 kalman_topright = None
-
 
 # main loop
 while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
@@ -143,11 +142,17 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
             H, mask = cv2.findHomography(pts_ex, pts_test, cv2.RANSAC, 5.0)
             
             # use Kalman filters to update corner positions
+            # NOTE: to preserve units, we must transform back to original
+            # (uncropped) coordinate system
             corners_test_raw = cv2.perspectiveTransform(corners_ex, H)
-            obs_topleft = [corners_test_raw[0,0,0], corners_test_raw[0,0,1]]
-            obs_botleft = [corners_test_raw[1,0,0], corners_test_raw[1,0,1]]
-            obs_botright = [corners_test_raw[2,0,0], corners_test_raw[2,0,1]]
-            obs_topright = [corners_test_raw[3,0,0], corners_test_raw[3,0,1]]
+            obs_topleft = [corners_test_raw[0,0,0] + offset[1], 
+                           corners_test_raw[0,0,1] + offset[0]]
+            obs_botleft = [corners_test_raw[1,0,0] + offset[1], 
+                           corners_test_raw[1,0,1] + offset[0]]
+            obs_botright = [corners_test_raw[2,0,0] + offset[1], 
+                            corners_test_raw[2,0,1] + offset[0]]
+            obs_topright = [corners_test_raw[3,0,0] + offset[1], 
+                            corners_test_raw[3,0,1] + offset[0]]
 
             # create new kalman filters if first run
             if frame == 1:
@@ -171,15 +176,21 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
                 kalman_botright.update(obs_botright, noiseR)
                 kalman_topright.update(obs_topright, noiseR)
 
+            # transform back to cropped coordinates
             filtered_topleft = kalman_topleft.X[:2].tolist()
             filtered_botleft = kalman_botleft.X[:2].tolist()
             filtered_botright = kalman_botright.X[:2].tolist()
             filtered_topright = kalman_topright.X[:2].tolist()
-
-            corners_test = np.float32([filtered_topleft,
-                                       filtered_botleft,
-                                       filtered_botright,
-                                       filtered_topright]).reshape(-1,1,2)
+            
+            corners_test = np.float32([[filtered_topleft[0][0] - offset[1],
+                                        filtered_topleft[1][0] - offset[0]],
+                                       [filtered_botleft[0][0] - offset[1],
+                                        filtered_botleft[1][0] - offset[0]],
+                                       [filtered_botright[0][0] - offset[1],
+                                        filtered_botright[1][0] - offset[0]],
+                                       [filtered_topright[0][0] - offset[1],
+                                        filtered_topright[1][0] - offset[0]]]
+                                      ).reshape(-1,1,2)
 
             # draw boundary of ex code
             cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
@@ -206,7 +217,6 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
             misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
 
             # update parameters for next run
-            gray_ex = gray_test
             corners_ex = corners_test
             kp_ex = kp_test
             des_ex = des_test
