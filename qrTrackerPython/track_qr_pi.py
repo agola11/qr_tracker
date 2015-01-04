@@ -29,7 +29,8 @@ SCALE = 0.5
 CROPFACTOR = 1.2
 FILTERTAP = 0.1
 VALIDBOXAREATHRESH = 0.25
-VALIDBOXDIMTHRESH = 50
+VALIDBOXDIMTHRESH = 75
+TEST_INTERVAL = 5
 
 # initialize other recurrent parameters
 last_topleft = None
@@ -51,6 +52,9 @@ def isValidBox(last_topleft, last_botright, new_topleft, new_botright):
         last_area = float(last_width * last_height)
         new_area = float(new_width * new_height)
         
+        if last_area == 0:
+            return False
+
         if ((abs(new_area - last_area) / last_area < VALIDBOXAREATHRESH) and 
             (min(new_width, new_height) > VALIDBOXDIMTHRESH)):
             return True
@@ -77,6 +81,32 @@ def filter_color(img):
 
     return gray
 
+# frame comparison test
+def compare_frames((des_ex, kp_ex), (des_orig, kp_orig), des_test):
+
+    # do feature matching
+    matches_ex = bf.knnMatch(des_ex, des_test, k=2)
+
+    # ratio test
+    good_matches_ex = []
+    for m,n in matches_ex:
+        if m.distance < MATCHINGTHRESH * n.distance:
+            good_matches_ex.append(m)
+
+
+    
+    # do feature matching
+    matches_orig = bf.knnMatch(des_orig, des_test, k=2)
+
+    # ratio test
+    good_matches_orig = []
+    for m,n in matches_orig:
+        if m.distance < MATCHINGTHRESH * n.distance:
+            good_matches_orig.append(m)
+
+    return (des_ex, kp_ex) if len(good_matches_ex) > len(good_matches_orig) else (des_orig, kp_orig)
+
+
 
 # process example (see below for comments)
 ex = cv2.imread(IMGPATH + EXFILENAME)
@@ -85,6 +115,8 @@ ex = cv2.resize(ex, (int(round(ex.shape[1]*SCALE)),
 gray_ex = filter_color(ex)
 orb = cv2.ORB()
 kp_ex, des_ex = orb.detectAndCompute(gray_ex, None)
+des_orig = des_ex
+kp_orig = kp_ex
 bf = cv2.BFMatcher(normType = cv2.NORM_HAMMING)
 ex_h, ex_w = gray_ex.shape
 corners_ex = np.float32([[0, 0], [0, ex_h-1], 
@@ -111,7 +143,7 @@ while True:
                                      int(round(test_big.shape[0]*SCALE))))
     test = test_big
     offset = (0, 0)
-    if (last_topleft is not None) and (last_botright is not None):
+    if (last_topleft is not None) and (last_botright is not None) and isValidBox(last_topleft, last_botright, last_topleft, last_botright):
         mid_row = 0.5 * (last_topleft[0] + last_botright[0])
         mid_col = 0.5 * (last_topleft[1] + last_botright[1])
         width = last_botright[0] - last_topleft[0]
@@ -134,6 +166,10 @@ while True:
     kp_test, des_test = orb.detectAndCompute(gray_test, None)
 
     if len(kp_test) > 0:
+        '''
+        if frame % TEST_INTERVAL == 0:
+            des_ex, kp_ex = compare_frames((des_ex, kp_ex), (des_orig, kp_orig), des_test)
+        '''
 
         # do feature matching
         matches_ex = bf.knnMatch(des_ex, des_test, k=2)
@@ -150,6 +186,7 @@ while True:
             last_topleft = None
             last_topright = None
             offset = (0, 0)
+            des_ex, kp_ex = des_orig, kp_orig
 
         else:
     
