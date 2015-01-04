@@ -1,9 +1,8 @@
 """
+Course: COS 429
 Author: David Fridovich-Keil
-Based on work for COS 429 final project, Fall 2014.
 
-Use Kalman filter to guide matching on the next frame, given the matching
-result from the previous frame.
+Track an orange marker in a video stream.
 """
 
 import numpy as np
@@ -15,10 +14,6 @@ from filter2d import Filter2D
 # file paths
 IMGPATH = "../images/"
 EXFILENAME = "orange_zebra_template.jpg"
-VIDEOPATH = "../videos/orange_zebra/frames/"
-VIDEOBASENAME = "orange_zebra%04d.jpg"
-OUTPUTPATH = "../videos/orange_zebra/frames_out_iir/"
-OUTPUTBASENAME = "orange_zebra%04d_output.jpg"
 
 # initialize color filter parameters
 UPPERBOUND_ORANGE = 25
@@ -75,14 +70,17 @@ filter_botleft = None
 filter_botright = None
 filter_topright = None
 
+# initialize camera
+cam = cv2.VideoCapture(0)
+
 # main loop
-while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
+while True:
 
     # start timer
     starttime = time.time()
 
     # read image and crop
-    test_big = cv2.imread(VIDEOPATH + VIDEOBASENAME % frame)
+    err, test_big = cam.read()
     test_big = cv2.resize(test_big, (int(round(test_big.shape[1]*SCALE)), 
                                      int(round(test_big.shape[0]*SCALE))))
     test = test_big
@@ -185,7 +183,7 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
                                       ).reshape(-1,1,2)
 
             # draw boundary of ex code
-            cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
+#            cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
 
             # update last corner coordinates
             last_topleft = (offset[0] + min(
@@ -201,12 +199,11 @@ while os.path.isfile(VIDEOPATH + VIDEOBASENAME % frame):
                     max(corners_test[0,0,0], corners_test[1,0,0]),
                     max(corners_test[2,0,0], corners_test[3,0,0])))
             
-            # print elapsed time
-            print ("Total elapsed time for frame " + str(frame) + ": " + 
-                   str(time.time() - starttime) + " seconds")
-
-            # save frame
-            misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
+            # output bounding box data
+            print ("[FRAME: " + str(frame) + ", TIME: " 
+                   + str(time.time() - starttime)
+                   + "] Top left: " + str(last_topleft) + "; Bottom right: " 
+                   + str(last_botright))
 
             # update parameters for next run
             corners_ex = corners_test
