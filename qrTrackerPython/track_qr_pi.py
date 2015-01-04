@@ -14,23 +14,49 @@ from filter2d import Filter2D
 # file paths
 IMGPATH = "../images/"
 EXFILENAME = "orange_zebra_template.jpg"
+OUTPUTPATH = "../videos/live/"
+OUTPUTBASENAME = "equad%04d_output.jpg"
 
 # initialize color filter parameters
 UPPERBOUND_ORANGE = 25
 LOWERBOUND_ORANGE = 110
 UPPERBOUND_LUM = 200
-LOWERBOUND_LUM = 75
+LOWERBOUND_LUM = 100
 MEDIANSIZE = 3
 MATCHINGTHRESH = 0.6
-MINGOODMATCHES = 4
+MINGOODMATCHES = 10
 SCALE = 0.5
 CROPFACTOR = 1.2
 FILTERTAP = 0.1
+VALIDBOXAREATHRESH = 0.25
+VALIDBOXDIMTHRESH = 50
 
 # initialize other recurrent parameters
 last_topleft = None
 last_botright = None
 frame = 1
+
+# check if new bounding box is valid by ensuring the change in area is less
+# than some threshold and that the smallest dimension is above 
+# some threshold
+def isValidBox(last_topleft, last_botright, new_topleft, new_botright):
+    if ((last_topleft is not None) and (last_botright is not None) and
+        (new_topleft is not None) and (new_botright is not None)):
+
+        last_width = last_botright[0] - last_topleft[0] 
+        last_height = last_botright[1] - last_topleft[1] 
+        new_width = new_botright[0] - new_topleft[0] 
+        new_height = new_botright[1] - new_topleft[1] 
+
+        last_area = float(last_width * last_height)
+        new_area = float(new_width * new_height)
+        
+        if ((abs(new_area - last_area) / last_area < VALIDBOXAREATHRESH) and 
+            (min(new_width, new_height) > VALIDBOXDIMTHRESH)):
+            return True
+        return False
+
+    return True
 
 # color filtering
 def filter_color(img):
@@ -121,7 +147,6 @@ while True:
         # halt if not enough good matches
         if len(good_matches_ex) < MINGOODMATCHES:
             print "Not enough good matches to estimate a homography."
-            frame = frame + 1
             last_topleft = None
             last_topright = None
             offset = (0, 0)
@@ -183,27 +208,36 @@ while True:
                                       ).reshape(-1,1,2)
 
             # draw boundary of ex code
-#            cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
+            cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
 
-            # update last corner coordinates
-            last_topleft = (offset[0] + min(
+            # check if valid box
+            new_topleft = (offset[0] + min(
                     min(corners_test[0,0,1], corners_test[1,0,1]),
                     min(corners_test[2,0,1], corners_test[3,0,1])),
                             offset[1] + min(
                     min(corners_test[0,0,0], corners_test[1,0,0]),
                     min(corners_test[2,0,0], corners_test[3,0,0])))
-            last_botright = (offset[0] + max(
+            new_botright = (offset[0] + max(
                     max(corners_test[0,0,1], corners_test[1,0,1]),
                     max(corners_test[2,0,1], corners_test[3,0,1])),
                              offset[1] + max(
                     max(corners_test[0,0,0], corners_test[1,0,0]),
                     max(corners_test[2,0,0], corners_test[3,0,0])))
-            
+
+            if isValidBox(new_topleft, new_botright, 
+                          last_topleft, last_botright):
+                # update last corner coordinates
+                last_topleft = new_topleft
+                last_botright = new_botright
+
             # output bounding box data
             print ("[FRAME: " + str(frame) + ", TIME: " 
                    + str(time.time() - starttime)
-                   + "] Top left: " + str(last_topleft) + "; Bottom right: " 
+                   + "]\nTop left: " + str(last_topleft) + "\nBottom right: " 
                    + str(last_botright))
+
+            # save frame
+            misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
 
             # update parameters for next run
             corners_ex = corners_test
@@ -212,8 +246,7 @@ while True:
             frame = frame + 1
 
     else:
-        print "No keypoints found in frame " + str(frame) + "."
-        frame = frame + 1
+        print "No keypoints found."
         last_topleft = None
         last_topright = None
         offset = (0, 0)
