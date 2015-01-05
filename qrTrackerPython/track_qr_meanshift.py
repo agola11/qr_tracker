@@ -238,7 +238,8 @@ while True:
         last_topright = None
         frame = frame + 1
         offset = (0, 0)
-        FILTERS_INIT = False
+        des_ex, kp_ex = des_orig, kp_orig
+#        FILTERS_INIT = False
 
     else:
         # periodically reset template
@@ -263,7 +264,7 @@ while True:
             last_topright = None
             offset = (0, 0)
             frame = frame + 1
-            FILTERS_INIT = False
+#            FILTERS_INIT = False
             des_ex, kp_ex = des_orig, kp_orig
 
         else:
