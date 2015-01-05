@@ -2,7 +2,7 @@
 Course: COS 429
 Author: David Fridovich-Keil
 
-Track an orange marker in a video stream.
+Track an orange marker in a video stream. Use Mean Shift algorithm.
 """
 
 import numpy as np
@@ -17,7 +17,7 @@ EXFILENAME = "orange_zebra_template.jpg"
 OUTPUTPATH = "../videos/live/"
 OUTPUTBASENAME = "equad%04d_output.jpg"
 
-# initialize color filter parameters
+# initialize filtering/cropping parameters
 UPPERBOUND_ORANGE = 25
 LOWERBOUND_ORANGE = 110
 UPPERBOUND_LUM = 200
@@ -31,6 +31,10 @@ FILTERTAP = 0.1
 VALIDBOXAREATHRESH = 0.25
 VALIDBOXDIMTHRESH = 75
 TEST_INTERVAL = 5
+
+# initialize meanshift parameters
+MAX_ITER = 10
+MIN_MOVE = 1
 
 # initialize other recurrent parameters
 last_topleft = None
