@@ -174,6 +174,7 @@ bf = cv2.BFMatcher(normType = cv2.NORM_HAMMING)
 ex_h, ex_w = gray_ex.shape
 corners_ex = np.float32([[0, 0], [0, ex_h-1], 
                          [ex_w-1, ex_h-1], [ex_w-1, 0]]).reshape(-1,1,2)
+corners_orig = corners_ex
 
 # initialize time-series filter parameters -- one tracker per corner
 filter_topleft = None
@@ -239,6 +240,7 @@ while True:
         frame = frame + 1
         offset = (0, 0)
         des_ex, kp_ex = des_orig, kp_orig
+        corners_ex = corners_orig
 #        FILTERS_INIT = False
 
     else:
@@ -266,6 +268,7 @@ while True:
             frame = frame + 1
 #            FILTERS_INIT = False
             des_ex, kp_ex = des_orig, kp_orig
+            corners_ex = corners_orig
 
         else:
     
