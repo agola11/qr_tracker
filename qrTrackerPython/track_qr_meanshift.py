@@ -7,6 +7,7 @@ Track an orange marker in a video stream. Use Mean Shift algorithm.
 
 import numpy as np
 import scipy.misc as misc
+from scipy.spatial import ConvexHull
 import cv2
 import time, sys, os
 from filter2d import Filter2D
@@ -32,7 +33,7 @@ VALIDBOXAREATHRESH_LO = 50.0 * 50.0
 VALIDBOXAREATHRESH_HI = 250.0 * 250.0
 VALIDBOXAREARATIO = 0.25
 VALIDBOXDIMTHRESH = 75
-VALIDBOXEPSILON = 45
+VALIDBOXEPSILON = 5
 TEST_INTERVAL = 5
 
 # initialize meanshift parameters
@@ -70,15 +71,36 @@ def isValidBoxSingleOrientation((topleft, botleft, botright, topright)):
 
     return False
 
+# from: http://stackoverflow.com/questions/24467972/calculate-area-of-polygon-given-x-y-coordinates
+def PolygonArea(corners):
+    n = len(corners) # of corners
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += corners[i][0] * corners[j][1]
+        area -= corners[j][0] * corners[i][1]
+    area = abs(area) / 2.0
+    return area
+
 def isValidBox(topleft, botleft, botright, topright):
     corners = [topleft, botleft, botright, topright]
     isValid = False
+
+    # test area
+    area = PolygonArea(corners)
+    if (area < VALIDBOXAREATHRESH_LO) or (area > VALIDBOXAREATHRESH_HI):
+        return False
+
+    # test convex hull
+    vertices = np.float32(corners)
+    print vertices
+    hull = ConvexHull(vertices)
+    if hull.vertices.shape[0] < 4:
+        return False
+
     for i in xrange(4):
         corners = corners[1:] + corners[:1]
         isValid = isValid or isValidBoxSingleOrientation(tuple(corners))
-
-    if not isValid:
-        print "Not a valid box."
 
     return isValid
 
@@ -111,6 +133,12 @@ def isValidNextBox(last_topleft, last_botright, new_topleft, new_botright):
         return False
 
     elif (new_topleft is not None) and (new_botright is not None):
+        print "No last_topleft or last_botright."
+        new_width = new_botright[1] - new_topleft[1] 
+        new_height = new_botright[0] - new_topleft[0] 
+
+        new_area = float(new_width * new_height)
+
         if (new_area < VALIDBOXAREATHRESH_LO) or (new_area > VALIDBOXAREATHRESH_HI):
             return False
         return True
@@ -159,7 +187,29 @@ def compare_frames((des_ex, kp_ex), (des_orig, kp_orig), des_test):
 
     return (des_ex, kp_ex) if len(good_matches_ex) > len(good_matches_orig) else (des_orig, kp_orig)
 
+# error handling
+def handleError(message):
+    print message
 
+    global last_topleft
+    global last_topright
+    global offset
+    global des_ex
+    global kp_ex
+    global des_orig
+    global kp_orig
+    global corners_ex
+    global corners_orig
+#    global FILTERS_INIT
+#    global frame
+
+    last_topleft = None
+    last_topright = None
+#   frame = frame + 1
+    offset = (0, 0)
+    des_ex, kp_ex = des_orig, kp_orig
+    corners_ex = corners_orig
+#   FILTERS_INIT = False    
 
 # process example (see below for comments)
 ex = cv2.imread(IMGPATH + EXFILENAME)
@@ -234,14 +284,7 @@ while True:
     kp_test, des_test = orb.detectAndCompute(gray_test, None)
 
     if len(kp_test) == 0:
-        print "No keypoints found."
-        last_topleft = None
-        last_topright = None
-        frame = frame + 1
-        offset = (0, 0)
-        des_ex, kp_ex = des_orig, kp_orig
-        corners_ex = corners_orig
-#        FILTERS_INIT = False
+        handleError("No keypoints found.")
 
     else:
         # periodically reset template
@@ -255,20 +298,16 @@ while True:
 
         # ratio test
         good_matches_ex = []
-        for m,n in matches_ex:
-            if m.distance < MATCHINGTHRESH * n.distance:
-                good_matches_ex.append(m)
+        try:
+            for m,n in matches_ex:
+                if m.distance < MATCHINGTHRESH * n.distance:
+                    good_matches_ex.append(m)
+        except:
+            handleError("No valid keypoint matches.")
 
         # halt if not enough good matches
         if len(good_matches_ex) < MINGOODMATCHES:
-            print "Not enough good matches to estimate a homography."
-            last_topleft = None
-            last_topright = None
-            offset = (0, 0)
-            frame = frame + 1
-#            FILTERS_INIT = False
-            des_ex, kp_ex = des_orig, kp_orig
-            corners_ex = corners_orig
+            handleError("Not enough good matches to estimate a homography.")
 
         else:
     
@@ -293,7 +332,17 @@ while True:
                             corners_test_raw[3,0,1] + offset[0]]
 
             # make sure this is a valid bounding box
-            if isValidBox(obs_topleft, obs_botleft, obs_botright, obs_topright):
+            if not isValidBox(obs_topleft, obs_botleft, obs_botright, obs_topright):
+                handleError("Invalid bounding box.")
+                
+                # draw boundary of ex code
+                cv2.polylines(gray_test, [np.int32(corners_test_raw)], True, 120, 5)
+
+                # save frame
+                misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
+                frame = frame + 1
+
+            else:
 
                 # create new 2D filters if first run
                 if not FILTERS_INIT:
@@ -345,15 +394,16 @@ while True:
                         max(corners_test[0,0,0], corners_test[1,0,0]),
                         max(corners_test[2,0,0], corners_test[3,0,0])))
                 
-                if isValidNextBox(new_topleft, new_botright, 
+                if not isValidNextBox(new_topleft, new_botright, 
                                   last_topleft, last_botright):
+                    handleError("Invalid next bounding box.")
+
+                else: 
+                    
                     # update last corner coordinates
                     last_topleft = new_topleft
                     last_botright = new_botright
                     
-                    # draw boundary of ex code
-                    cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
-
                     # output bounding box data
                     print ("[FRAME: " + str(frame) + ", TIME: " 
                            + str(time.time() - starttime)
@@ -365,6 +415,9 @@ while True:
                     kp_ex = kp_test
                     des_ex = des_test
                     frame = frame + 1
+
+                    # draw boundary of ex code
+                    cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
 
                     # save frame
                     misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
