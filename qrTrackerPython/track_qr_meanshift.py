@@ -193,12 +193,12 @@ def handleError(message):
     global last_topleft
     global last_topright
     global offset
-    global des_ex
-    global kp_ex
-    global des_orig
-    global kp_orig
-    global corners_ex
-    global corners_orig
+#    global des_ex
+#    global kp_ex
+#    global des_orig
+#    global kp_orig
+#    global corners_ex
+#    global corners_orig
 #    global FILTERS_INIT
 #    global frame
 
@@ -206,8 +206,8 @@ def handleError(message):
     last_topright = None
 #   frame = frame + 1
     offset = (0, 0)
-    des_ex, kp_ex = des_orig, kp_orig
-    corners_ex = corners_orig
+#    des_ex, kp_ex = des_orig, kp_orig
+#    corners_ex = corners_orig
 #   FILTERS_INIT = False    
 
 # process example (see below for comments)
