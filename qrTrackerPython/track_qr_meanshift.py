@@ -29,8 +29,8 @@ MINGOODMATCHES = 10
 SCALE = 0.5
 CROPFACTOR = 1.2
 FILTERTAP = 0.1
-VALIDBOXAREATHRESH_LO = 50.0 * 50.0
-VALIDBOXAREATHRESH_HI = 250.0 * 250.0
+VALIDBOXAREATHRESH_LO = 10.0 * 10.0
+VALIDBOXAREATHRESH_HI = 1000.0 * 1000.0
 VALIDBOXAREARATIO = 0.25
 VALIDBOXDIMTHRESH = 75
 VALIDBOXEPSILON = 5
@@ -93,7 +93,6 @@ def isValidBox(topleft, botleft, botright, topright):
 
     # test convex hull
     vertices = np.float32(corners)
-    print vertices
     hull = ConvexHull(vertices)
     if hull.vertices.shape[0] < 4:
         return False
@@ -334,14 +333,14 @@ while True:
             # make sure this is a valid bounding box
             if not isValidBox(obs_topleft, obs_botleft, obs_botright, obs_topright):
                 handleError("Invalid bounding box.")
-                
+                """
                 # draw boundary of ex code
                 cv2.polylines(gray_test, [np.int32(corners_test_raw)], True, 120, 5)
 
                 # save frame
                 misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
                 frame = frame + 1
-
+                """
             else:
 
                 # create new 2D filters if first run
@@ -393,7 +392,7 @@ while True:
                                 offset[1] + max(
                         max(corners_test[0,0,0], corners_test[1,0,0]),
                         max(corners_test[2,0,0], corners_test[3,0,0])))
-                
+
                 if not isValidNextBox(new_topleft, new_botright, 
                                   last_topleft, last_botright):
                     handleError("Invalid next bounding box.")
@@ -421,7 +420,3 @@ while True:
 
                     # save frame
                     misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
-
-
-
-
