@@ -28,7 +28,7 @@ MATCHINGTHRESH = 0.6
 MINGOODMATCHES = 10
 SCALE = 0.5
 CROPFACTOR = 1.2
-FILTERTAP = 0.1
+FILTERTAP = 0.4
 VALIDBOXAREATHRESH_LO = 10.0 * 10.0
 VALIDBOXAREATHRESH_HI = 1000.0 * 1000.0
 VALIDBOXAREARATIO = 0.25
@@ -110,10 +110,10 @@ def isValidNextBox(last_topleft, last_botright, new_topleft, new_botright):
     if ((last_topleft is not None) and (last_botright is not None) and
         (new_topleft is not None) and (new_botright is not None)):
 
-        last_width = last_botright[1] - last_topleft[1] 
-        last_height = last_botright[0] - last_topleft[0] 
-        new_width = new_botright[1] - new_topleft[1] 
-        new_height = new_botright[0] - new_topleft[0] 
+        last_width = last_botright[0] - last_topleft[0] 
+        last_height = last_botright[1] - last_topleft[1] 
+        new_width = new_botright[0] - new_topleft[0] 
+        new_height = new_botright[1] - new_topleft[1] 
 
         last_area = float(last_width * last_height)
         new_area = float(new_width * new_height)
@@ -133,8 +133,8 @@ def isValidNextBox(last_topleft, last_botright, new_topleft, new_botright):
 
     elif (new_topleft is not None) and (new_botright is not None):
         print "No last_topleft or last_botright."
-        new_width = new_botright[1] - new_topleft[1] 
-        new_height = new_botright[0] - new_topleft[0] 
+        new_width = new_botright[0] - new_topleft[0] 
+        new_height = new_botright[1] - new_topleft[1] 
 
         new_area = float(new_width * new_height)
 
@@ -247,9 +247,8 @@ while True:
                                      int(round(test_big.shape[0]*SCALE))))
     test = test_big
     offset = (0, 0)
-    if ((last_topleft is not None) and (last_botright is not None) and 
-        isValidBox(last_topleft, last_botright, last_topleft, last_botright)):
-
+    if (last_topleft is not None) and (last_botright is not None):
+        print "Cropping..."
         mid_row = 0.5 * (last_topleft[0] + last_botright[0])
         mid_col = 0.5 * (last_topleft[1] + last_botright[1])
         width = last_botright[0] - last_topleft[0]
