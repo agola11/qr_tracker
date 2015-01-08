@@ -14,6 +14,8 @@ from filter2d import Filter2D
 
 # file paths
 IMGPATH = "../images/"
+VIDEOPATH = "../videos/test/"
+VIDEOBASENAME = "orange_zebra%04.jpg"
 EXFILENAME = "orange_zebra_template_wide.jpg"
 OUTPUTPATH = "../videos/live/"
 OUTPUTBASENAME = "equad%04d_output.jpg"
@@ -35,15 +37,6 @@ VALIDBOXAREARATIO = 0.25
 VALIDBOXDIMTHRESH = 75
 VALIDBOXEPSILON = 5
 TEST_INTERVAL = 5
-
-# initialize meanshift parameters
-MAX_ITER = 10
-MIN_MOVE = 1
-MEANSHIFT_INIT = False
-track_window = None
-roi = None
-roi_hist = None
-term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, MAX_ITER, MIN_MOVE)
 
 # initialize other recurrent parameters
 last_topleft = None
@@ -263,17 +256,6 @@ while True:
        
         offset = (min_row, min_col)
         test = test[min_row:max_row, min_col:max_col, :]
-
-        # if first time, init meanshift
-        """
-        if not MEANSHIFT_INIT:
-            roi = test
-            hsv_roi = cv2.cvtColor(test, cv2.COLOR_RGB2HSV)
-            mask = cv2.inRange(hsv_roi, np.array((0., 60.,32.)), np.array((180.,255.,255.)))
-            roi_hist = cv2.calcHist([hsv_roi],[0],mask,[180],[0,180])
-            cv2.normalize(roi_hist,roi_hist,0,255,cv2.NORM_MINMAX)
-            MEANSHIFT_INIT = True
-        """
 
     # filter colors
     gray_test = filter_color(test)
