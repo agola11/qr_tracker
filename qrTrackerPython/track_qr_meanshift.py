@@ -14,11 +14,11 @@ from filter2d import Filter2D
 
 # file paths
 IMGPATH = "../images/"
-VIDEOPATH = "../videos/test/"
-VIDEOBASENAME = "orange_zebra%04.jpg"
+VIDEOPATH = "../videos/benchmark/frames/"
+VIDEOBASENAME = "benchmark%04d.jpg"
 EXFILENAME = "orange_zebra_template_wide.jpg"
-OUTPUTPATH = "../videos/live/"
-OUTPUTBASENAME = "equad%04d_output.jpg"
+OUTPUTPATH = "../videos/benchmark/frames_out/"
+OUTPUTBASENAME = "benchmark%04d_output.jpg"
 
 # initialize filtering/cropping parameters
 UPPERBOUND_ORANGE = 25
@@ -30,7 +30,7 @@ MATCHINGTHRESH = 0.6
 MINGOODMATCHES = 10
 SCALE = 0.5
 CROPFACTOR = 1.2
-FILTERTAP = 0.4
+FILTERTAP = 0.2
 VALIDBOXAREATHRESH_LO = 10.0 * 10.0
 VALIDBOXAREATHRESH_HI = 1000.0 * 1000.0
 VALIDBOXAREARATIO = 0.25
@@ -236,6 +236,7 @@ while True:
 
     # read image and crop
     err, test_big = cam.read()
+#    misc.imsave(VIDEOPATH + VIDEOBASENAME % frame, test_big)    
     test_big = cv2.resize(test_big, (int(round(test_big.shape[1]*SCALE)), 
                                      int(round(test_big.shape[0]*SCALE))))
     test = test_big
