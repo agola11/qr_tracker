@@ -43,15 +43,7 @@ last_topleft = None
 last_botright = None
 frame = 1
 
-def saveSingleImage(org):
-    global frame
-    stitched = np.ones(org.shape)
-    stitched[:, :, 0] = org[:, :, 2]
-    stitched[:, :, 1] = org[:, :, 1]
-    stitched[:, :, 2] = org[:, :, 0]
-    misc.imsave(VIDEOPATH + VIDEOBASENAME % frame, stitched)  
-
-
+# save side-by-side images
 def saveImgs(org, out):
     global frame
 
@@ -72,8 +64,7 @@ def saveImgs(org, out):
     stitched[:, (org.shape[1] + 1):, 0] = out
     stitched[:, (org.shape[1] + 1):, 1] = out
     stitched[:, (org.shape[1] + 1):, 2] = out
-    misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, stitched)  
-
+    misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, stitched)    
 
 # compute slopes of bounding quadrilateral
 def isValidBoxSingleOrientation((topleft, botleft, botright, topright)):
@@ -211,8 +202,9 @@ def compare_frames((des_ex, kp_ex), (des_orig, kp_orig), des_test):
 
     return (des_ex, kp_ex) if len(good_matches_ex) > len(good_matches_orig) else (des_orig, kp_orig)
 
+
 # error handling
-def handleError(message):
+def handleError(message, org):
     print message
 
     global last_topleft
@@ -225,15 +217,20 @@ def handleError(message):
 #    global corners_ex
 #    global corners_orig
 #    global FILTERS_INIT
-#    global frame
-
+    global frame
+    global computation_time
+    
     last_topleft = None
     last_topright = None
-#   frame = frame + 1
+    frame = frame + 1
     offset = (0, 0)
+    
+#    computation_time = time.time() - begin_time
+    saveImgs(org, np.ones((org.shape[0], org.shape[1])))
 #    des_ex, kp_ex = des_orig, kp_orig
 #    corners_ex = corners_orig
 #   FILTERS_INIT = False    
+
 
 # process example (see below for comments)
 ex = cv2.imread(IMGPATH + EXFILENAME)
@@ -268,7 +265,7 @@ while True:
 
     # read image and crop
     err, test_big = cam.read()
-    saveSingleImage(test_big)    
+#    misc.imsave(VIDEOPATH + VIDEOBASENAME % frame, test_big)    
     test_big = cv2.resize(test_big, (int(round(test_big.shape[1]*SCALE)), 
                                      int(round(test_big.shape[0]*SCALE))))
     test = test_big
@@ -297,7 +294,7 @@ while True:
     kp_test, des_test = orb.detectAndCompute(gray_test, None)
 
     if len(kp_test) == 0:
-        handleError("No keypoints found.")
+        handleError("No keypoints found.", test_big)
 
     else:
         # periodically reset template
@@ -316,11 +313,11 @@ while True:
                 if m.distance < MATCHINGTHRESH * n.distance:
                     good_matches_ex.append(m)
         except:
-            handleError("No valid keypoint matches.")
+            handleError("No valid keypoint matches.", test_big)
 
         # halt if not enough good matches
         if len(good_matches_ex) < MINGOODMATCHES:
-            handleError("Not enough good matches to estimate a homography.")
+            handleError("Not enough good matches to estimate a homography.", test_big)
 
         else:
     
@@ -346,7 +343,7 @@ while True:
 
             # make sure this is a valid bounding box
             if not isValidBox(obs_topleft, obs_botleft, obs_botright, obs_topright):
-                handleError("Invalid bounding box.")
+                handleError("Invalid bounding box.", test_big)
                 """
                 # draw boundary of ex code
                 cv2.polylines(gray_test, [np.int32(corners_test_raw)], True, 120, 5)
@@ -409,7 +406,7 @@ while True:
 
                 if not isValidNextBox(new_topleft, new_botright, 
                                   last_topleft, last_botright):
-                    handleError("Invalid next bounding box.")
+                    handleError("Invalid next bounding box.", test_big)
 
                 else: 
                     
@@ -433,4 +430,4 @@ while True:
                     cv2.polylines(gray_test, [np.int32(corners_test)], True, 120, 5)
 
                     # save frame
-                    misc.imsave(OUTPUTPATH + OUTPUTBASENAME % frame, gray_test)
+                    saveImgs(test_big, gray_test)
