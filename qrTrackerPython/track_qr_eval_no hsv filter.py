@@ -2,7 +2,7 @@
 Course: COS 429
 Author: David Fridovich-Keil
 
-Track an orange marker in a video stream. Full algorithm.
+Track an orange marker in a video stream. Full algorithm minus hsv color filtering.
 """
 
 import numpy as np
@@ -15,7 +15,7 @@ from filter2d import Filter2D
 # file paths
 IMGPATH = "../images/"
 EXFILENAME = "orange_zebra_template_wide.jpg"
-OUTPUTPATH = "../videos/benchmark/frames_out_full/"
+OUTPUTPATH = "../videos/benchmark/frames_out_no hsv filter/"
 OUTPUTBASENAME = "benchmark%04d_output.jpg"
 
 # initialize filtering/cropping parameters
@@ -164,6 +164,7 @@ def isValidNextBox(last_topleft, last_botright, new_topleft, new_botright):
 # color filtering
 def filter_color(img):
 
+    """
     # convert to hsv
     hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
     hue = hsv[:,:,0]
@@ -177,6 +178,8 @@ def filter_color(img):
     gray[indices] = 255
     gray[np.logical_not(indices)] = 0
     gray = cv2.medianBlur(gray, MEDIANSIZE)
+    """
+    gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
     return gray
 

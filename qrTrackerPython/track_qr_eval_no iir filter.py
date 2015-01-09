@@ -2,7 +2,7 @@
 Course: COS 429
 Author: David Fridovich-Keil
 
-Track an orange marker in a video stream. Full algorithm.
+Track an orange marker in a video stream. Full algorithm minus iir corner filter.
 """
 
 import numpy as np
@@ -15,7 +15,7 @@ from filter2d import Filter2D
 # file paths
 IMGPATH = "../images/"
 EXFILENAME = "orange_zebra_template_wide.jpg"
-OUTPUTPATH = "../videos/benchmark/frames_out_full/"
+OUTPUTPATH = "../videos/benchmark/frames_out_no iir filter/"
 OUTPUTBASENAME = "benchmark%04d_output.jpg"
 
 # initialize filtering/cropping parameters
@@ -28,7 +28,7 @@ MATCHINGTHRESH = 0.6
 MINGOODMATCHES = 10
 SCALE = 0.5
 CROPFACTOR = 1.2
-FILTERTAP = 0.2
+FILTERTAP = 0.0
 VALIDBOXAREATHRESH_LO = 10.0 * 10.0
 VALIDBOXAREATHRESH_HI = 1000.0 * 1000.0
 VALIDBOXAREARATIO = 0.25
