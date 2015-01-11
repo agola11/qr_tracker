@@ -1,7 +1,8 @@
 %% Testing QR Code Tracking
-
+% Author: Ankush Gola
+% heavily adapted from http://www.mathworks.com/help/vision/examples/object-detection-in-a-cluttered-scene-using-point-feature-matching.html#btt5qyu
 qr_scale = 0.5;
-scene_scale = 0.25;
+scene_scale = 0.5;
 scene = 'scene_2.jpg';
 
 qrImage = imresize(imread('qr.jpg'), qr_scale);
@@ -9,8 +10,8 @@ qrImage = imresize(imread('qr.jpg'), qr_scale);
 sceneImage = imresize(imread(scene), scene_scale);
 sceneGray = rgb2gray(sceneImage);
 
-qrPoints = detectHarrisFeatures(qrImage);
-scenePoints = detectHarrisFeatures(sceneGray);
+qrPoints = detectSURFFeatures(qrImage);
+scenePoints = detectSURFFeatures(sceneGray);
 
 [qrFeatures, qrPoints] = extractFeatures(qrImage, qrPoints);
 [sceneFeatures, scenePoints] = extractFeatures(sceneGray, scenePoints);
