@@ -1,6 +1,6 @@
 """
 Course: COS 429
-Author: David Fridovich-Keil
+Author: David Fridovich-Keil, Ankush Gola
 
 Track an orange marker in a video stream. Full algorithm.
 """
